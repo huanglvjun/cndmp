@@ -5,7 +5,7 @@
 # version: 1.0.1
 # author: hlj
 # date: 2016-01-07
-# 功能：将话单文件按配置的NAT IP地址段过滤，存放到指定目录，将原话单文件移动至另一指定目录
+# 功能：将话单文件按配置的host过滤，存放到指定目录，原话单文件不动
 # 配置文件：app_host_filter.conf app_host.txt
 # 参数：
 # 修改历史：
@@ -22,7 +22,7 @@
 # 调用函数  : 无
 # 修改历史      :
 #  1.日    期   : 2015年04月23日
-#    作    者   : 齐凯
+#    作    者   : hlj
 #    修改内容   : 新生成函数
 ########################################################################
 function InitEnv
@@ -80,7 +80,7 @@ function ParseConf
 # 调用函数  : 无
 # 修改历史      :
 #  1.日    期   : 2015年04月23日
-#    作    者   : 齐凯
+#    作    者   : hlj
 #    修改内容   : 新生成函数
 ########################################################################
 function Echo
@@ -103,7 +103,7 @@ function Echo
 # 调用函数  : 无
 # 修改历史      :
 #  1.日    期   : 2015年04月23日
-#    作    者   : 齐凯
+#    作    者   : hlj
 #    修改内容   : 新生成函数
 ########################################################################
 function SetCrontab
@@ -125,7 +125,7 @@ function SetCrontab
 # 调用函数  : Echo
 # 修改历史      :
 #  1.日    期   : 2015年04月23日
-#    作    者   : 齐凯
+#    作    者   : hlj
 #    修改内容   : 新生成函数
 ########################################################################
 function CheckScript
@@ -143,78 +143,7 @@ function CheckScript
 
 
 ########################################################################
-# 函 数 名  : nat_xdr_filter
-# 功能描述  : 将话单文件按配置的NAT IP地址段过滤，存放到指定目录，将原话单文件移动至另一指定目录
-# 输入参数  : 1：需写入信息
-# 返 回 值  : 无
-# 调用函数  : 无
-# 修改历史      :
-#  1.日    期   : 2016-01-07
-#    作    者   : hlj
-#    修改内容   : 新生成函数
-########################################################################
-function nat_xdr_filter
-{
-    mkdir -p ${nat_xdr_path}
-    mkdir -p ${all_xdr_path}
-    
-    cd ${source_xdr_path}
-    file_number=`ls ./ | grep "^${prefix}" | grep "${postfix}$"| wc -l `
-    Echo "file_number: ${file_number}"
-    if [ ${file_number} == 0 ];then
-        Echo "No files(${prefix}*${postfix}) exists in source_xdr_path:${source_xdr_path}"
-        exit   
-    fi    
-
-    for file in `ls ./${prefix}*${postfix}`
-    do
-    Echo "file: "${file}
-    
-    file_basename="$(basename "${file}" .${postfix})"
-    nat_xdr_filename_tmp=${file_basename}".tmp"
-    nat_xdr_filename=${file_basename}"."${postfix}
-
-    awk -F ',' -v nat_ip_file=${nat_ip_file} -v nat_xdr_path=${nat_xdr_path} -v nat_xdr_filename_tmp=${nat_xdr_filename_tmp} '
-    BEGIN{
-        while(getline < nat_ip_file > 0)
-        {
-            ip_array[$1]=$2
-            print "ip_int_start: " $1 
-            print "ip_int_end: " $2
-        }
-    }
-    
-        {    
-            source_ip=$3
-            source_ip2=gensub("'\''","","g",source_ip)
-  
-            split(source_ip2,ip_splited,".")
-            ip_int=ip_splited[1]*(256**3)+ip_splited[2]*(256**2)+ip_splited[3]*256+ip_splited[4]
-            for(key in ip_array)
-                {   
-                    if(ip_int-0 >= key-0 && ip_int-0 <= ip_array[key]-0)
-                    {   
-                        print $0 >> nat_xdr_filename_tmp
-                        break
-                    }
-                }
-        }' ${file}
-        
-        nat_file_number=`ls ./ | grep "${nat_xdr_filename_tmp}"| wc -l `
-        Echo "nat_file_number: ${nat_file_number}"
-        if [ ${nat_file_number} -gt 0 ];then
-            Echo "mv ${nat_xdr_filename_tmp} ${nat_xdr_path}/${nat_xdr_filename}"
-            mv ${nat_xdr_filename_tmp} ${nat_xdr_path}/${nat_xdr_filename}
-        fi
-
-        Echo "mv ${file} ${all_xdr_path}"
-        mv ${file} ${all_xdr_path} 
-    done
-}
-########################################################################
-
-########################################################################
-# 函 数 名  : nat_xdr_filter
+# 函 数 名  : host_filter
 # 功能描述  : 将话单文件按配置的NAT IP地址段过滤，存放到指定目录，将原话单文件移动至另一指定目录
 # 输入参数  : 1：需写入信息
 # 返 回 值  : 无
