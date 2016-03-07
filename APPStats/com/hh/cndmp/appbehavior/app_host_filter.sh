@@ -33,6 +33,7 @@ function InitEnv
     DATE=$(date +'%Y%m%d')
     TIME=$(date +'%H%M%S')
     UTC=$(date +'%s')
+    TREAT_TIME=`date --date='-60 minutes' "+%Y%m%d_%H"`
 }
 
 ########################################################################
@@ -66,7 +67,7 @@ function ParseConf
     s1=`echo ${source_xdr_path} | sed 's#/##g' | wc -m`
     s2=`echo ${DIR_LOG} | sed 's#/##g' | wc -m`
     if [ ${s1} -le 3 ] || [ ${s2} -lt 3 ];then
-        Echo "Configuration file  not correctly parsed!\nexit\n"
+        Echo "1: Configuration file  not correctly parsed!\nexit\n"
         exit
     fi
 }
@@ -155,30 +156,32 @@ function CheckScript
 ########################################################################
 function host_filter
 {
-    mkdir -p ${nat_xdr_path}
+    mkdir -p ${filter_xdr_path}
 
     cd ${source_xdr_path}
-    file_number=`ls ./ | grep "^${prefix}" | grep "${postfix}$"| wc -l `
+    aprefix=${prefix}${TREAT_TIME}
+    
+    file_number=`ls ./ | grep "^${aprefix}" | grep "${postfix}$"| wc -l `
     Echo "file_number: ${file_number}"
     if [ ${file_number} == 0 ];then
-        Echo "No files(${prefix}*${postfix}) exists in source_xdr_path:${source_xdr_path}"
+        Echo "No files(${aprefix}*${postfix}) exists in source_xdr_path:${source_xdr_path}"
         exit
     fi
 
-    for file in `ls ./${prefix}*${postfix}`
+    for file in `ls ./${aprefix}*${postfix}`
     do
     Echo "file: "${file}
 
     file_basename="$(basename "${file}" .${postfix})"
-    nat_xdr_filename_tmp=${file_basename}".tmp"
-    nat_xdr_filename=${file_basename}"."txt
+    filter_xdr_filename_tmp=${file_basename}".tmp"
+    filter_xdr_filename=${file_basename}"."txt
 
-    zcat ${file} | awk -F '\t' -v nat_ip_file=${nat_ip_file} -v nat_xdr_path=${nat_xdr_path} -v nat_xdr_filename_tmp=${nat_xdr_filename_tmp} '
+    cat ${file} | awk -F '\t' -v filter_resource_file=${filter_resource_file} -v filter_xdr_path=${filter_xdr_path} -v filter_xdr_filename_tmp=${filter_xdr_filename_tmp} '
     BEGIN{
-        while(getline < nat_ip_file > 0)
+        while(getline < filter_resource_file > 0)
         {
-            ip_array[$1]=$1
-            # print "app host: " $1
+            split($1,info,",")
+            regex_array[info[3]]=info[4]
         }
     }
 
@@ -187,22 +190,31 @@ function host_filter
             telephone = $6
             host = $25
             uri = $26
-            for(key in ip_array)
+            for(key in regex_array)
                 {
-                    if(host == key)
+                    if( regex_array[key] == "1" && host == key )
                     {
                         out = imei"|"telephone"|"host"|"uri
-                        print out >> nat_xdr_filename_tmp
+                        print out >> filter_xdr_path"/"filter_xdr_filename_tmp
                         break
+                    }
+                    else if( regex_array[key] == "2" && index(host,key) != 0 )
+                    {
+                        out = imei"|"telephone"|"host"|"uri
+                        print out >> filter_xdr_path"/"filter_xdr_filename_tmp
+                        break
+                    }
+                    else
+                    {
+                        continue
                     }
                 }
         }'
-
-        nat_file_number=`ls ./ | grep "${nat_xdr_filename_tmp}"| wc -l `
+        nat_file_number=`ls ${filter_xdr_path}/ | grep "${filter_xdr_filename_tmp}"| wc -l `
         Echo "nat_file_number: ${nat_file_number}"
         if [ ${nat_file_number} -gt 0 ];then
-            Echo "mv ${nat_xdr_filename_tmp} ${nat_xdr_path}/${nat_xdr_filename}"
-            mv ${nat_xdr_filename_tmp} ${nat_xdr_path}/${nat_xdr_filename}
+            Echo "mv ${filter_xdr_filename_tmp} ${filter_xdr_path}/${filter_xdr_filename}"
+            mv ${filter_xdr_path}/${filter_xdr_filename_tmp} ${filter_xdr_path}/${filter_xdr_filename}
         fi
     done
 }
@@ -237,7 +249,7 @@ ParseConf
 #检查是否有相同的脚本运行，若有，则退出
 CheckScript
 #写入定时任务
-#SetCrontab
+SetCrontab
 #按host过滤话单
 host_filter
 #清除过期文件
