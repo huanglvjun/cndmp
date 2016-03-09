@@ -62,6 +62,8 @@ function ParseConf
     LOG_NORMAL="${DIR_LOG}/${SCRIPT_NAME}_${DATE}.log"
     #脚本运行错误日志
     LOG_ERROR="${DIR_LOG}/${SCRIPT_NAME}_${DATE}.err"
+    #脚本运行警告日志
+    LOG_WARNING="${DIR_LOG}/${SCRIPT_NAME}_${DATE}.warnings"
     exec 2>>"${LOG_ERROR}"
 
     s1=`echo ${source_xdr_path} | sed 's#/##g' | wc -m`
@@ -161,8 +163,10 @@ function host_filter
     cd ${source_xdr_path}
     if [ ${tmp_treat_time} == 0 ];then
         aprefix=${prefix}${TREAT_TIME}
-    elif:
+        echo "tmp_treat_time == 0 aprefix=${prefix}${TREAT_TIME}"
+    else
         aprefix=${prefix}${tmp_treat_time}
+        echo "aprefix=${prefix}${tmp_treat_time}"
     fi
 
     file_number=`ls ./ | grep "^${aprefix}" | grep "${postfix}$"| wc -l `
@@ -180,13 +184,22 @@ function host_filter
     filter_xdr_filename_tmp=${file_basename}".tmp"
     filter_xdr_filename=${file_basename}"."txt
 
-    cat ${file} | awk -F '\t' -v filter_resource_file=${filter_resource_file} -v filter_xdr_path=${filter_xdr_path} -v filter_xdr_filename_tmp=${filter_xdr_filename_tmp} '
+    cat ${file} | awk -F '\t' -v filter_resource_file=${filter_resource_file} -v filter_xdr_path=${filter_xdr_path} -v filter_xdr_filename_tmp=${filter_xdr_filename_tmp} -v log_warning=${LOG_WARNING} '
     BEGIN{
         while(getline < filter_resource_file > 0)
         {
             split($1,info,",")
-            regex_array[info[3]]=info[4]
+            if( info[6] == 0 || info[8] == 0 )
+            {   print strftime("%y-%m-%d %T") >> log_warning
+                print "the following regexes were skipped when filter xdr record." >> log_warning
+                print $1 >> log_warning
+            }
+            else
+            {
+                regex_array[info[5]]=info[6]
+            }
         }
+        # for(key in regex_array) {print key": "regex_array[key]}
     }
 
         {
@@ -196,17 +209,24 @@ function host_filter
             uri = $26
             for(key in regex_array)
                 {
-                    if( regex_array[key] == "1" && host == key )
+                    if( regex_array[key] == 1 && host == key )
                     {
                         out = imei"|"telephone"|"host"|"uri
                         print out >> filter_xdr_path"/"filter_xdr_filename_tmp
                         break
                     }
-                    else if( regex_array[key] == "2" && index(host,key) != 0 )
+                    else if( regex_array[key] == 2 && index(host,key) != 0 )
                     {
                         out = imei"|"telephone"|"host"|"uri
                         print out >> filter_xdr_path"/"filter_xdr_filename_tmp
                         break
+                    }
+                    else if( regex_array[key] == 4 && host~key )
+                    {
+                        out = imei"|"telephone"|"host"|"uri
+                        print out >> filter_xdr_path"/"filter_xdr_filename_tmp
+                        break
+              
                     }
                     else
                     {

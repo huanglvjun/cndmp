@@ -3,7 +3,7 @@
 """
     Copyright (c) 2008-2015 浩瀚深度 All Rights Reserved.
     
-    FileName: liveness3.py
+    FileName: user_behavior_stats.py
 
     ProjectName: APPStats
     
@@ -15,7 +15,9 @@
 """
 
 import os
+import io
 import configparser
+# import ConfigParser
 import datetime
 from itertools import islice
 import re
@@ -24,7 +26,8 @@ from collections import Counter
 
 # parse config file
 config = configparser.ConfigParser()
-config.read('F:\cndmp\APPStats\com\hh\cndmp\\appbehavior\liveness.cfg')
+# config = ConfigParser.ConfigParser()
+config.read('F:\cndmp\APPStats\com\hh\cndmp\\appbehavior\\user_behavior_stats.cfg')
 
 XDR_PATH = config.get('global', 'XDR_PATH')
 PREFIX = config.get('global', 'PREFIX')
@@ -61,7 +64,8 @@ def scan_files(directory, prefix=None, postfix=None):
 
 # 载入匹配规则
 app_regexes = {}
-with open(REGEX_FILE, 'r', encoding='utf-8') as regex_file:
+# with open(REGEX_FILE, 'r', encoding='utf-8') as regex_file:
+with io.open(REGEX_FILE, 'r', encoding='utf-8') as regex_file:
     i = 0
     lines = regex_file.readlines()
     for line in islice(lines, 0, None):
@@ -122,7 +126,7 @@ for file in files:
                         pv_cnt[pv_key] += 1
                         uv_cnt[uv_key] += 1
                         continue
-                elif host_type1 == '' and uri_type1 == '0':
+                elif host_type1 == '1' and uri_type1 == '0':
                     if host == reg_host1:
                         # print("3: " + host)
                         pv_key = key; uv_key = key + '|' + telephone
@@ -159,8 +163,9 @@ for key in sorted(uv_cnt):
     k = '|'.join(key.split('|')[0:2])
     uv_cnt1[k] += 1
 
+os.makedirs(OUT_PATH)
 # 结果保存文件文件名
-if not HOURLY:
+if HOURLY:
     out_filename = OUT_PATH + os.sep + 'hourly_' + file_date + '_' + hour + '.txt'
 else:
     out_filename = OUT_PATH + os.sep + 'daily_' + file_date + '.txt'

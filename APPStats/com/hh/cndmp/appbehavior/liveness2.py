@@ -24,7 +24,7 @@ date = '2016-03-04'
 
 # parse config file
 # config = ConfigParser.ConfigParser()
-# config.read('./liveness.cfg')
+# config.read('./user_behavior_stats.cfg')
 # 
 # XDR_PATH = config.get('global', 'XDR_PATH')
 # REGEX_FILE = config.get('global', 'REGEX_FILE')
