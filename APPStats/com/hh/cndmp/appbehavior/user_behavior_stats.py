@@ -54,7 +54,7 @@ file_date = treat_time.strftime(FILETIMEFORMAT)
 record_date = treat_time.strftime(RECORDTIMEFORMAT)
 hour = treat_time.strftime(HOURFORMAT)
 
-
+print(treat_time)
 # 提取待处理文件列表
 def scan_files(directory, prefix=None, postfix=None):
     files_list = []
@@ -95,8 +95,9 @@ if HOURLY == '0':
 else:
     aprefix = PREFIX + '_' + file_date + '_'
 
+aprefix1 = PREFIX + '_' + '20150812'
 
-files = scan_files(XDR_PATH, aprefix, POSTFIX)
+files = scan_files(XDR_PATH, aprefix1, POSTFIX)
 if not len(files):
     print('no input xdr file!')
     exit()
